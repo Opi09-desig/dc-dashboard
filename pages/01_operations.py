@@ -1,11 +1,12 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
 
-st.title("📊 01 · Data Center Operations (U3)")
-st.subheader("Uptime SLA & Incident Management")
+st.title("📊 Gestión de Operaciones")
+st.write("Control de carga y rendimiento de servidores.")
 
-col1, col2 = st.columns(2)
-col1.metric("Current SLA", "99.999%", "Available")
-col2.metric("Active Incidents", "0", "Stable")
+# Gráfico simulado de carga de trabajo
+data = pd.DataFrame(np.random.randn(20, 3), columns=['Cómputo', 'Red', 'Storage'])
+st.line_chart(data)
 
-st.write("### MAC Processes (Moves, Adds, Changes)")
-st.table({"ID": ["MAC-001", "MAC-002"], "Type": ["Server Install", "Cable Cleanup"], "Status": ["Pending", "In Progress"]})
+st.success("Estado de los sistemas: Operando normalmente")
