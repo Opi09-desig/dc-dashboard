@@ -1,0 +1,12 @@
+# Ignorar binarios
+*.exe
+terraform.exe
+
+# Ignorar carpeta de configuración de Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Ignorar archivos temporales
+.DS_Store
+__pycache__/
