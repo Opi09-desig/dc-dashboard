@@ -35,17 +35,17 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }} # Usamos el ID del commit para evitar conflictos de caché
+          IMAGE_TAG: ${{ github.sha }}
         run: |
+          # 1. Asegurar que el repositorio existe en us-east-1
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region us-east-1 || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region us-east-1
+          
+          # 2. Construir la imagen
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          
+          # 3. Empujar (Push) a AWS
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      - name: Update ECS Service (Force New Deployment)
-        run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} \
-                                 --service ${{ env.ECS_SERVICE }} \
-                                 --force-new-deployment \
-                                 --region ${{ env.AWS_REGION }}
