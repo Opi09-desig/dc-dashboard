@@ -7,7 +7,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: dc-dashboard-repo # Debe coincidir con tu nombre en AWS ECR
-  ECS_SERVICE: dc-ops-service      # Coincide con Terraform
+  ECS_SERVICE: dc-ops-service-v2      # Coincide con Terraform
   ECS_CLUSTER: dc-ops-cluster      # Coincide con Terraform
   CONTAINER_NAME: streamlit-app    # Coincide con Terraform
 

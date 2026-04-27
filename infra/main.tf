@@ -1,81 +1,70 @@
-# 1. Configuración de AWS y Provider
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
-  region = "us-east-1" # Puedes cambiar a la región donde AWS México tenga sus servicios de gestión
+  region = "us-east-1" # <--- Asegúrate de que diga esto exactamente
 }
 
-# 2. VPC y Red (Network)
-resource "aws_vpc" "main" {
+# --- VPC y Red ---
+resource "aws_vpc" "main_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
+  enable_dns_support   = true
   tags = { Name = "dc-ops-vpc" }
 }
 
-resource "aws_subnet" "public_a" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
-  map_public_ip_on_launch = true
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main_vpc.id
+  tags   = { Name = "dc-ops-igw" }
 }
 
-resource "aws_subnet" "public_b" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1b"
-  map_public_ip_on_launch = true
+resource "aws_subnet" "public_subnets" {
+  count                   = 2
+  vpc_id                  = aws_vpc.main_vpc.id
+  cidr_block              = "10.0.${count.index + 1}.0/24"
+  availability_zone       = count.index == 0 ? "us-east-1a" : "us-east-1b"
+  map_public_ip_on_launch = true # Vital para que los servicios tengan salida
+  tags = { Name = "dc-ops-public-subnet-${count.index + 1}" }
 }
 
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
-}
-
-resource "aws_route_table" "rt" {
-  vpc_id = aws_vpc.main.id
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
+    gateway_id = aws_internet_gateway.igw.id
   }
 }
 
-resource "aws_route_table_association" "a" {
-  subnet_id      = aws_subnet.public_a.id
-  route_table_id = aws_route_table.rt.id
+resource "aws_route_table_association" "public_assoc" {
+  count          = 2
+  subnet_id      = aws_subnet.public_subnets[count.index].id
+  route_table_id = aws_route_table.public_rt.id
 }
 
-# 3. Security Groups (Firewall)
-resource "aws_security_group" "alb_sg" {
-  name   = "alb-security-group"
-  vpc_id = aws_vpc.main.id
+# --- Security Groups ---
+resource "aws_security_group" "ecs_sg" {
+  name        = "dc-ops-ecs-sg"
+  description = "Allow inbound 8501 and outbound for ECR"
+  vpc_id      = aws_vpc.main_vpc.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 8501
+    to_port     = 8501
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Permite acceso web desde cualquier lugar
+    cidr_blocks = ["0.0.0.0/0"] # Permitir ver el Dashboard
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # Vital para descargar la imagen de ECR
   }
 }
 
-# 4. ECS Cluster y Fargate
-resource "aws_ecs_cluster" "main" {
+# --- ECS Cluster y Service ---
+resource "aws_ecs_cluster" "dc_cluster" {
   name = "dc-ops-cluster"
 }
 
-resource "aws_ecs_task_definition" "app" {
+resource "aws_ecs_task_definition" "dc_task" {
   family                   = "dc-ops-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -84,8 +73,9 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([{
-    name  = "streamlit-app"
-    image = "tu-usuario-ecr.dkr.ecr.us-east-1.amazonaws.com/dc-dashboard:latest" # Cambia esto tras crear el ECR
+    name      = "dc-dashboard-container"
+    image     = "974125292218.dkr.ecr.us-east-1.amazonaws.com/dc-dashboard-repo:latest"
+    essential = true
     portMappings = [{
       containerPort = 8501
       hostPort      = 8501
@@ -93,62 +83,23 @@ resource "aws_ecs_task_definition" "app" {
   }])
 }
 
-# 5. Load Balancer (El que te da la URL)
-resource "aws_lb" "main" {
-  name               = "dc-ops-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-}
-
-resource "aws_lb_target_group" "app" {
-  name        = "dc-ops-tg"
-  port        = 8501
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
-  target_type = "ip"
-
-  health_check {
-    path = "/_stcore/health"
-  }
-}
-
-resource "aws_lb_listener" "front_end" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
-  }
-}
-
-# 6. ECS Service
-resource "aws_ecs_service" "main" {
-  name            = "dc-ops-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
+resource "aws_ecs_service" "dc_service" {
+  name            = "dc-ops-service-v2"
+  cluster         = aws_ecs_cluster.dc_cluster.id
+  task_definition = aws_ecs_task_definition.dc_task.arn
   launch_type     = "FARGATE"
+  desired_count   = 1
 
   network_configuration {
-    subnets          = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-    security_groups  = [aws_security_group.alb_sg.id]
-    assign_public_ip = true
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.app.arn
-    container_name   = "streamlit-app"
-    container_port   = 8501
+    subnets          = aws_subnet.public_subnets[*].id
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true # SOLUCIÓN AL TIMEOUT: Permite a Fargate descargar la imagen
   }
 }
 
-# Rol de IAM necesario (Simplificado)
+# --- IAM Role (Identidad del Servidor) ---
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRoleNew"
+  name = "ecsTaskExecutionRoleV4"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -160,7 +111,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+resource "aws_iam_role_policy_attachment" "ecs_execution_attachment" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
