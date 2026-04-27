@@ -1,5 +1,6 @@
-streamlit
-pandas
-plotly
-faker
-streamlit-extras
+streamlit==1.32.0
+plotly==5.18.0
+pandas==2.1.4
+faker==22.0.0
+streamlit-extras==0.4.0
+boto3==1.34.0

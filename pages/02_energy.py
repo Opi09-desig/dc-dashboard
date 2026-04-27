@@ -1,37 +1,70 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="Eficiencia Energética", layout="wide")
-st.title("⚡ Análisis Energético Global (2024)")
-st.markdown("Basado en reportes del Uptime Institute y la IEA (Agencia Internacional de la Energía).")
+st.set_page_config(page_title="AWS QRO-1 | Energy Efficiency", layout="wide")
 
-# Métricas principales
+# --- CSS PARA IDENTIDAD VISUAL ---
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; }
+    .stMetric { background-color: #161b22; border: 1px solid #c9a84c; padding: 15px; border-radius: 10px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title(" Energy Management & Sustainability")
+st.subheader("AWS Mexico Central Region | Sustainability Targets")
+
+# --- MÉTRICAS PRINCIPALES ---
 col1, col2, col3 = st.columns(3)
-col1.metric("PUE Promedio Global", "1.56", "-0.02 vs 2023")
-col2.metric("Consumo DC Global (2024)", "415 TWh", "+36 TWh vs 2023")
-col3.metric("Objetivo de PUE (Nuevos DC)", "1.30", "Óptimo")
+with col1:
+    st.metric("Current PUE (QRO-1)", "1.18", "-0.05", help="Power Usage Effectiveness")
+with col2:
+    st.metric("Renewable Energy Mix", "85%", "+12%")
+with col3:
+    st.metric("Water Usage Effectiveness", "0.25 L/kWh", "Optimal")
 
-st.markdown("---")
+st.divider()
 
-# Dos columnas para dos gráficas
+# --- CALCULADORA INTERACTIVA DE PUE (Requisito Guía) ---
+with st.expander("🧮 Interactive PUE Calculator"):
+    st.write("Calculate the efficiency of your specific data center row or hall.")
+    it_load = st.number_input("IT Equipment Load (kW)", min_value=1.0, value=100.0)
+    cooling_load = st.number_input("Cooling & Lighting Load (kW)", min_value=1.0, value=20.0)
+    
+    total_facility = it_load + cooling_load
+    calculated_pue = total_facility / it_load
+    
+    st.markdown(f"### Resulting PUE: **{calculated_pue:.2f}**")
+    st.latex(r"PUE = \frac{\text{Total Facility Power}}{\text{IT Equipment Power}}")
+
+# --- GRÁFICAS PROFESIONALES CON PLOTLY ---
 chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
-    st.subheader("Evolución del PUE Global (2014-2024)")
-    # Datos reales de tendencia de PUE
-    pue_data = pd.DataFrame({
-        "Año": ["2014", "2018", "2020", "2022", "2023", "2024"],
-        "PUE Promedio": [1.70, 1.58, 1.59, 1.55, 1.58, 1.56]
-    }).set_index("Año")
-    st.line_chart(pue_data, color="#FF4B4B")
-    st.caption("El estancamiento del PUE demuestra la dificultad de optimizar centros de datos legacy.")
+    st.subheader("PUE Trend: Global vs. AWS QRO-1")
+    pue_trend = pd.DataFrame({
+        "Year": ["2022", "2023", "2024", "2025 (Proj)"],
+        "Global Avg": [1.55, 1.58, 1.56, 1.54],
+        "AWS QRO-1": [1.22, 1.20, 1.18, 1.15]
+    })
+    
+    # Cambiamos "#gray" por "gray" (nombre de CSS) o un Hex real como "#808080"
+    fig_pue = px.line(pue_trend, x="Year", y=["Global Avg", "AWS QRO-1"], 
+                      markers=True, 
+                      template="plotly_dark", 
+                      color_discrete_sequence=["gray", "#c9a84c"]) # <--- FIX AQUÍ
+    
+    fig_pue.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_pue, use_container_width=True)
 
 with chart_col2:
-    st.subheader("Proyección Consumo Global (TWh)")
-    # Datos reales proyectados por la IEA
+    st.subheader("Projected Consumption (TWh)")
     energy_data = pd.DataFrame({
-        "Año": ["2022", "2023", "2024", "2026 (Est)", "2030 (Est)"],
-        "Consumo (TWh)": [340, 379, 415, 620, 945]
-    }).set_index("Año")
-    st.bar_chart(energy_data, color="#0068C9")
-    st.caption("Crecimiento impulsado drásticamente por la adopción de IA Generativa.")
+        "Year": ["2022", "2023", "2024", "2026 (Est)", "2030 (Est)"],
+        "Consumption": [340, 379, 415, 620, 945]
+    })
+    fig_energy = px.bar(energy_data, x="Year", y="Consumption", 
+                        template="plotly_dark", color_discrete_sequence=["#4a1a6e"])
+    st.plotly_chart(fig_energy, use_container_width=True)
