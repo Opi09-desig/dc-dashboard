@@ -1,30 +1,26 @@
-# Usamos una imagen ligera de Python 3.11
+# Usamos una versión slim que es más estable para despliegues
 FROM python:3.11-slim
 
-# Evita que Python genere archivos .pyc y permite logs en tiempo real
+# Evita que Python genere archivos .pyc y permite ver logs en tiempo real
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
 
-# Instalación de dependencias del sistema para pandas/numpy
+# Instalamos solo lo mínimo indispensable para evitar errores de red
 RUN apt-get update && apt-get install -y \
-    build-essential \
     curl \
-    software-properties-common \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
+# Copiamos primero los requerimientos para aprovechar la caché de Docker
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiamos el resto de la aplicación
 COPY . .
 
-# Exponemos el puerto oficial de Streamlit
+# Exponemos el puerto de Streamlit
 EXPOSE 8501
-
-# Configuración de salud para que ECS sepa si el contenedor está vivo
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
 # Comando para ejecutar la app
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
