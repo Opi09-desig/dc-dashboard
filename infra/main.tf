@@ -88,7 +88,7 @@ resource "aws_ecs_service" "dc_service" {
   cluster         = aws_ecs_cluster.dc_cluster.id
   task_definition = aws_ecs_task_definition.dc_task.arn
   launch_type     = "FARGATE"
-  desired_count   = 1
+  desired_count   = 0           #para apagar 0 y para prender 1
 
   network_configuration {
     subnets          = aws_subnet.public_subnets[*].id

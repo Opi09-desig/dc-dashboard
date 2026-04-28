@@ -5,13 +5,41 @@ import plotly.express as px
 st.set_page_config(page_title="AWS QRO-1 | Security & Compliance", layout="wide")
 
 # --- CSS PARA IDENTIDAD VISUAL ---
-st.markdown("""
+st.markdown(
+    """
     <style>
-    .main { background-color: #0e1117; }
-    .stMetric { background-color: #161b22; border: 1px solid #ff4b4b; padding: 15px; border-radius: 10px; }
-    .status-box { padding: 20px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #30363d; }
+    /* Estilo para el contenedor principal de la métrica (la tarjeta) */
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+        background-color: #1E1E1E !important; /* Fondo gris oscuro */
+        border-radius: 10px !important;       /* Bordes redondeados */
+        padding: 15px !important;            /* Espaciado interno */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important; /* Sombra sutil */
+    }
+
+    /* Estilo específico para el valor principal (ej. 99.998%) */
+    [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;          /* Texto Blanco */
+        font-size: 2.5rem !important;      /* Tamaño grande */
+        font-weight: bold !important;       /* Negrita */
+    }
+
+    /* Estilo específico para la etiqueta superior (ej. Uptime SLA) */
+    [data-testid="stMetricLabel"] p {
+        color: #AAAAAA !important;          /* Texto gris claro */
+        font-size: 1rem !important;        /* Tamaño normal */
+        margin-bottom: 0px !important;      /* Quitar margen inferior */
+    }
+    
+    /* Estilo para las flechas de delta (verde/rojo) */
+    [data-testid="stMetricDelta"] {
+        color: inherit !important;          /* Mantener color verde/rojo original */
+        background-color: transparent !important; /* Quitar fondo de la flecha */
+        box-shadow: none !important;        /* Quitar sombra de la flecha */
+    }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 st.title("🛡️ Security & Compliance Center")
 st.subheader("AWS Mexico Central | Region Security Operations")

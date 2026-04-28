@@ -8,13 +8,43 @@ st.set_page_config(page_title="AWS QRO-1 | Operations", layout="wide")
 fake = Faker()
 
 # --- CSS PERSONALIZADO PARA LOOK PROFESIONAL ---
-st.markdown("""
+st.markdown(
+    """
     <style>
-    .main { background-color: #0e1117; }
-    .stMetric { background-color: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 10px; }
-    .status-card { border-left: 5px solid #00ff00; padding: 10px; background: #161b22; margin-bottom: 10px; }
+    /* Estilo para el contenedor principal de la métrica (la tarjeta) */
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+        background-color: #1E1E1E !important; /* Fondo gris oscuro */
+        border-radius: 10px !important;       /* Bordes redondeados */
+        padding: 15px !important;            /* Espaciado interno */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important; /* Sombra sutil */
+    }
+
+    /* Estilo específico para el valor principal (ej. 99.998%) */
+    [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;          /* Texto Blanco */
+        font-size: 2.5rem !important;      /* Tamaño grande */
+        font-weight: bold !important;       /* Negrita */
+    }
+
+    /* Estilo específico para la etiqueta superior (ej. Uptime SLA) */
+    [data-testid="stMetricLabel"] p {
+        color: #AAAAAA !important;          /* Texto gris claro */
+        font-size: 1rem !important;        /* Tamaño normal */
+        margin-bottom: 0px !important;      /* Quitar margen inferior */
+    }
+    
+    /* Estilo para las flechas de delta (verde/rojo) */
+    [data-testid="stMetricDelta"] {
+        color: inherit !important;          /* Mantener color verde/rojo original */
+        background-color: transparent !important; /* Quitar fondo de la flecha */
+        box-shadow: none !important;        /* Quitar sombra de la flecha */
+    }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
+
+
 
 # --- HEADER ---
 st.title("🌐 AWS Mexico Central (mx-central-1)")

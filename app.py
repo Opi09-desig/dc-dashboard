@@ -72,4 +72,4 @@ with col_tech:
 
 # --- FOOTER ---
 st.sidebar.markdown("---")
-st.sidebar.info(f"📍 **Location:** Querétaro Hub\n\n📅 **Status:** Production Ready")
+st.sidebar.info(f"📍 **Location:** Querétaro Hub\n\n📅 **Status:** Production Ready") 
